@@ -914,10 +914,10 @@ body.dark #image-preview-name { color: #aaa; }
 
 <script>
 // ==================== CONFIGURATION ====================
-// IMPORTANT: Replace with your own Google Gemini API key
-// Get your free API key at: https://makersuite.google.com/app/apikey
-const GEMINI_API_KEY = 'YOUR_GOOGLE_GEMINI_API_KEY_HERE';
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+// IMPORTANT: Replace with your own Groq API key
+// Get your free API key at: https://console.groq.com/keys
+const GROQ_API_KEY = 'YOUR_GROQ_API_KEY_HERE';
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 // Global state for image handling
 let selectedImageBase64 = null;
@@ -965,45 +965,54 @@ function removeImage() {
     document.getElementById('photo-input').value = '';
 }
 
-// ==================== IMAGE ANALYSIS WITH GEMINI API ====================
-async function analyzeImageWithGemini(imageBase64, userMessage) {
+// ==================== IMAGE ANALYSIS WITH GROQ API ====================
+async function analyzeImageWithGroq(imageBase64, userMessage) {
     try {
-        if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_GOOGLE_GEMINI_API_KEY_HERE') {
-            return "⚠️ API key not configured. Please set your Google Gemini API key in the settings.";
+        if (!GROQ_API_KEY || GROQ_API_KEY === 'YOUR_GROQ_API_KEY_HERE') {
+            return "⚠️ API key not configured. Please set your Groq API key in the settings.";
         }
 
         const payload = {
-            contents: [{
-                parts: [
-                    {
-                        text: `Analyze this image and answer the following question or provide analysis: ${userMessage || 'Describe what you see in this image.'}`
-                    },
-                    {
-                        inline_data: {
-                            mime_type: "image/jpeg",
-                            data: imageBase64
+            model: "llama-2-90b-vision",
+            messages: [
+                {
+                    role: "user",
+                    content: [
+                        {
+                            type: "text",
+                            text: `Analyze this image and answer the following question or provide analysis: ${userMessage || 'Describe what you see in this image.'}`
+                        },
+                        {
+                            type: "image_url",
+                            image_url: {
+                                url: `data:image/jpeg;base64,${imageBase64}`
+                            }
                         }
-                    }
-                ]
-            }]
+                    ]
+                }
+            ],
+            max_tokens: 1024,
+            temperature: 0.7
         };
 
-        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+        const response = await fetch(GROQ_API_URL, {
             method: 'POST',
             headers: {
+                'Authorization': `Bearer ${GROQ_API_KEY}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(payload)
         });
 
         if (!response.ok) {
-            throw new Error(`API Error: ${response.status}`);
+            const errorData = await response.json();
+            throw new Error(`API Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
         }
 
         const data = await response.json();
         
-        if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0]) {
-            return data.candidates[0].content.parts[0].text;
+        if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
+            return data.choices[0].message.content;
         } else {
             return "Unable to analyze image. Please try again.";
         }
@@ -1153,7 +1162,7 @@ async function sendMessage() {
 
         // If image is selected, analyze it
         if (selectedImageBase64) {
-            botResponse = await analyzeImageWithGemini(selectedImageBase64, message);
+            botResponse = await analyzeImageWithGroq(selectedImageBase64, message);
             removeImage();
         } else if (message) {
             // Regular text message handling
