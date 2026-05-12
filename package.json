@@ -1,0 +1,12 @@
+{
+  "name": "usemee-chatbot",
+  "version": "1.0.0",
+  "description": "Local chat app with image analysis and business assistant features.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": ["chatbot", "usemee", "groq", "node"],
+  "author": "",
+  "license": "MIT"
+}
