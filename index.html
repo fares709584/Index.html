@@ -914,9 +914,29 @@ body.dark #image-preview-name { color: #aaa; }
 
 <script>
 // ==================== CONFIGURATION ====================
-// IMPORTANT: Replace with your own Groq API key
-// Get your free API key at: https://console.groq.com/keys
-const GROQ_API_KEY = 'YOUR_GROQ_API_KEY_HERE';
+// IMPORTANT: Load API key from environment or localStorage for client-side usage
+// For production, use a backend server to handle API calls
+// Store your Groq API key securely - NEVER expose it directly in client code
+// 
+// Options:
+// 1. Use a backend server (recommended for security)
+// 2. Store in localStorage for client-side (less secure)
+// 3. Pass from environment during build time
+
+// Get API key from multiple sources (in order of priority)
+let GROQ_API_KEY = '';
+
+// Try to load from window.config first (set via backend/script)
+if (typeof window !== 'undefined' && window.GROQ_API_KEY) {
+    GROQ_API_KEY = window.GROQ_API_KEY;
+}
+
+// Try localStorage (less secure, for development only)
+if (!GROQ_API_KEY && localStorage.getItem('groq_api_key')) {
+    GROQ_API_KEY = localStorage.getItem('groq_api_key');
+}
+
+// Fallback message for unconfigured key
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 // Global state for image handling
@@ -968,8 +988,11 @@ function removeImage() {
 // ==================== IMAGE ANALYSIS WITH GROQ API ====================
 async function analyzeImageWithGroq(imageBase64, userMessage) {
     try {
-        if (!GROQ_API_KEY || GROQ_API_KEY === 'YOUR_GROQ_API_KEY_HERE') {
-            return "⚠️ API key not configured. Please set your Groq API key in the settings.";
+        if (!GROQ_API_KEY) {
+            return "⚠️ Groq API key not configured. " +
+                   "1. Get your free API key at https://console.groq.com/keys\n" +
+                   "2. Store it securely (in .env file, NOT in code)\n" +
+                   "3. Pass it via backend or localStorage";
         }
 
         const payload = {
@@ -1018,7 +1041,7 @@ async function analyzeImageWithGroq(imageBase64, userMessage) {
         }
     } catch (error) {
         console.error('Image analysis error:', error);
-        return `Error analyzing image: ${error.message}. Make sure your API key is valid.`;
+        return `Error analyzing image: ${error.message}`;
     }
 }
 
